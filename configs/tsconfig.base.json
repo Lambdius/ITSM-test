@@ -1,0 +1,52 @@
+{
+  "compilerOptions": {
+    "composite": false,                           // Enables composite project support (projectReferences): requires declaration, declarationMap
+    "target": "ES2021",                           // JavaScript version to compile TypeScript into
+    "module": "nodenext",                         // Module system used in the project
+    "esModuleInterop": true,                      // Allows using CommonJS modules with ES6 syntax (e.g., import instead of require)
+    "resolveJsonModule": true,                    // Allows importing JSON files as modules
+    "allowSyntheticDefaultImports": true,         // Allows synthetic default imports (import webpack from "webpack" instead of import * as webpack from "webpack")
+
+    "allowJs": false,                             // Disallows JavaScript files in the project
+    "sourceMap": false,                           // Generates source map files (.map) for debugging
+    "declaration": true,                          // Generates type declaration files (.d.ts)
+    "declarationMap": false,                      // Generates source maps for declaration files (.map) for debugging
+    "removeComments": true,                       // Removes all comments from compiled output
+
+    "experimentalDecorators": true,               // Enables experimental decorators support
+    "emitDecoratorMetadata": true,                // Enables metadata generation for decorators
+    "useDefineForClassFields": true,              // Uses the new ECMAScript standard for class fields
+
+    "noImplicitReturns": true,                    // Requires explicit return values from all function branches
+    "allowUnreachableCode": false,                // Disallows unreachable code
+    "noImplicitOverride": true,                   // Disallows implicit method overrides (use override keyword)
+    "noUnusedLocals": true,                       // Disallows unused local variables
+    "noUnusedParameters": true,                   // Disallows unused function parameters
+    "noFallthroughCasesInSwitch": true,           // Requires explicit break or return in switch cases
+
+    "skipLibCheck": false,                        // Enables type checking in declaration files (.d.ts)
+    "forceConsistentCasingInFileNames": true,     // Requires consistent casing in file names
+
+    "moduleResolution": "NodeNext",               // Uses Node.js-style module resolution
+    "types": ["node"],                            // TS 6.0 defaults `types` to [] instead of auto-including @types/*; restores @types/node globals (__dirname, node: imports)
+    "isolatedModules": true,                      // Treats each file as a separate module (does not affect declaration files)
+    "incremental": true,                          // Enables incremental compilation to optimize build time
+
+    "exactOptionalPropertyTypes": false,          // Does not require exact type matching for optional properties
+    "noPropertyAccessFromIndexSignature": false,  // Allows property access through index signatures
+
+    "noUncheckedIndexedAccess": true,            // Include undefined when accessing unchecked array and index signature entries
+
+    "strict": true,
+    /* Enables strict type-checking mode:
+      1. alwaysStrict - Always enables strict mode in files
+      2. strictNullChecks - Checks for null and undefined in union and optional types
+      3. strictFunctionTypes - Enables strict function type checking
+      4. strictPropertyInitialization - Checks class property initialization
+      5. strictBindCallApply - Checks bind, call, and apply function methods
+      6. noImplicitAny - Disallows implicit use of the any type
+      7. noImplicitThis - Checks this type outside classes and objects
+      8. useUnknownInCatchVariables - Uses unknown type for catch block variables
+    */
+  }
+}

@@ -1,0 +1,14 @@
+generator client {
+    provider        = "prisma-client"
+    output          = "./generated"
+    moduleFormat    = "cjs"
+    previewFeatures = ["relationJoins"]
+}
+
+generator json {
+    provider = "prisma-json-types-generator"
+}
+
+datasource db {
+    provider = "postgresql"
+}

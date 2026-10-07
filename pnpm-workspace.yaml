@@ -1,0 +1,20 @@
+strictPeerDependencies: true
+blockExoticSubdeps: true
+engineStrict: true
+lockfile: true
+color: true
+loglevel: info
+savePrefix: ""
+peerDependencyRules:
+  allowedVersions:
+    "@apollo/server-plugin-landing-page-graphql-playground@4.0.1>@apollo/server": "5.5.1"
+allowBuilds:
+  "@apollo/protobufjs": true
+  "@prisma/engines": true
+  "@scarf/scarf": false
+  "unrs-resolver": true
+  "cpu-features": true
+  "protobufjs": true
+  "esbuild": true
+  "prisma": true
+  "ssh2": true

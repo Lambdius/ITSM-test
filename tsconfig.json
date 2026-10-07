@@ -1,0 +1,30 @@
+{
+  "extends": "./configs/tsconfig.base.json",  // Root config, better to avoid editing!
+  "compilerOptions": {
+    "rootDir": ".",                           // Root directory of the source code
+    "outDir": "./dist",                       // Output directory for compiled files
+    "paths": {
+      "~infrastructure": ["./src/infrastructure"],
+      "~infrastructure/*": ["./src/infrastructure/*"],
+      "~bootstrap/*": ["./src/bootstrap/*"],
+      "~bootstrap": ["./src/bootstrap"],
+      "~observability": ["./src/observability"],
+      "~observability/*": ["./src/observability/*"],
+      "~context": ["./src/context"],
+      "~context/*": ["./src/context/*"],
+      "~testing/*": ["./src/testing/*"],
+      "~common/*": ["./src/common/*"],
+      "~root/*": ["./*"],
+    },
+  },
+  "include": [
+    "./prisma.config.ts",
+    "src/**/*",
+  ],
+  "exclude": [
+    "node_modules",
+    "coverage",
+    "configs",
+    "dist",
+  ],
+}

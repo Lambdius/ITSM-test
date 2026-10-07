@@ -1,0 +1,68 @@
+x-base: &base
+  restart: on-failure
+  env_file:
+    - .env
+
+name: ${SERVICE_NAME:?}
+
+services:
+  postgresql:
+    <<: *base
+    image: ${POSTGRES_IMAGE:?}
+    container_name: ${SERVICE_NAME:?}-postgresql
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+    command: ["postgres", "-p", "${POSTGRES_PORT:?}"]
+    ports:
+      - "${PUBLISHED_HOST:?}:${POSTGRES_PUBLISHED_PORT:?}:${POSTGRES_PORT:?}"
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      postgres_net:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -p \"$${POSTGRES_PORT}\" -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      start_period: ${HEALTHCHECK_START_PERIOD:?}
+      interval: ${HEALTHCHECK_INTERVAL:?}
+      timeout: ${HEALTHCHECK_TIMEOUT:?}
+      retries: ${HEALTHCHECK_RETRIES:?}
+
+  service:
+    <<: *base
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BASE_IMAGE: ${APP_BASE_IMAGE:?}
+    image: ${SERVICE_NAME:?}:${APP_IMAGE_TAG:?}
+    container_name: ${SERVICE_NAME:?}-app
+    environment:
+      ALLOWED_SERVICE_ORIGINS: ${ALLOWED_SERVICE_ORIGINS:?}
+      ALLOWED_UI_ORIGINS: ${ALLOWED_UI_ORIGINS:?}
+      BODY_LIMIT_BYTES: ${BODY_LIMIT_BYTES:?}
+      DATABASE_URL: ${DATABASE_URL:?}
+      HSTS_MAX_AGE: ${HSTS_MAX_AGE:?}
+      NODE_ENV: ${NODE_ENV:?}
+      APP_HOST: ${APP_HOST:?}
+      APP_PORT: ${APP_PORT:?}
+    ports:
+      - "${PUBLISHED_HOST:?}:${APP_PUBLISHED_PORT:?}:${APP_PORT:?}"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    networks:
+      postgres_net:
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:' + process.env.APP_PORT + '/health/readiness').then(response => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))"]
+      start_period: ${HEALTHCHECK_START_PERIOD:?}
+      interval: ${HEALTHCHECK_INTERVAL:?}
+      timeout: ${HEALTHCHECK_TIMEOUT:?}
+      retries: ${HEALTHCHECK_RETRIES:?}
+
+volumes:
+  postgresql_data:
+
+networks:
+  postgres_net:
+    name: ${DOCKER_NETWORK_POSTGRES:?}

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+source scripts/logger.sh
+OUTPUT_FILE="$(mktemp)"
+trap 'rm -f "$OUTPUT_FILE"' EXIT
+
+COMMANDS=(env:check tsc knip lint utest)
+for command in "${COMMANDS[@]}"; do
+    log_step "$command"
+    started="$(now_ms)"
+    if pnpm run "$command" >"$OUTPUT_FILE" 2>&1; then
+        log_result passed "$(($(now_ms) - started))"
+    else
+        log_output "$OUTPUT_FILE"
+        log_verdict failed 'COMMIT FAILED:' "$command"
+        exit 1
+    fi
+done
+log_verdict passed 'COMMIT CHECKS PASSED:' "${#COMMANDS[@]} steps"

@@ -1,0 +1,8 @@
+node_modules
+dist
+src/infrastructure/database/generated
+coverage
+*.tsbuildinfo
+.git
+.env
+*.log
