@@ -22,12 +22,14 @@ export class ExperienceFiltersDTO implements Repositories.Mappers.Experience.Fil
     @Validator.IsOptional()
     @Validator.ValidateNested()
     @Type(() => StringFilterDTO)
+    @Validator.IsNonNullableFilter()
     public company?: Nullable<StringFilterDTO>;
 
     @Field(() => StringFilterDTO, { nullable: true })
     @Validator.IsOptional()
     @Validator.ValidateNested()
     @Type(() => StringFilterDTO)
+    @Validator.IsNonNullableFilter()
     public position?: Nullable<StringFilterDTO>;
 
     @Field(() => OrdinalFilterDTO, { nullable: true })

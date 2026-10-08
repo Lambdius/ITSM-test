@@ -25,7 +25,7 @@ export class ProjectMapper implements Repositories.Mappers.Contract<
             where.createdAt = ORMAdapter.applyOrdinalFilter(filters.createdAt);
         }
         if (filters.updatedAt) {
-            where.updatedAt = ORMAdapter.applyOrdinalFilter(filters.updatedAt);
+            where.updatedAt = ORMAdapter.applyNullableOrdinalFilter(filters.updatedAt);
         }
         return where;
     }

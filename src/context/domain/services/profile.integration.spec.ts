@@ -1,11 +1,11 @@
-import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { randomUUID } from "node:crypto";
 
+import { ProfileIntegrationHelpers } from "~testing/integration/domain-service/profile.helpers";
+import { postgresSuite } from "~testing/integration/containers/postgres.suite";
+import { CoreFixture } from "~testing/integration/repositories/core.fixture";
 import { ErrorCode, Exception } from "~common/exceptions";
 import { Profile } from "~context/domain/entities";
-import { CoreFixture } from "~testing/integration/repositories/core.fixture";
-import { postgresSuite } from "~testing/integration/containers/postgres.suite";
-import { ProfileIntegrationHelpers } from "~testing/integration/domain-service/profile.helpers";
 
 const helpers = new ProfileIntegrationHelpers();
 
@@ -52,7 +52,7 @@ describe("ProfileService integration", () => {
     });
 
     describe("update", () => {
-        it("changes mutable fields and preserves identity, timestamps and omitted data", async () => {
+        it("changes mutable fields and updatedAt while preserving identity, createdAt and omitted data", async () => {
             const entity = await create();
             const result = await suite.transaction((transaction) =>
                 suite.repository().profileService.update({
@@ -65,26 +65,48 @@ describe("ProfileService integration", () => {
             expect(await suite.repository().repositories.profiles.findById({ id: entity.id })).toMatchObject({
                 ...entity,
                 name: "Updated",
-                updatedAt: entity.updatedAt,
+                updatedAt: expect.any(Date),
             });
         });
 
-        it.each([{}, { name: "Created" }])(
-            "accepts an empty or unchanged patch %p without altering stored data",
-            async (patch) => {
-                const entity = await create();
-                await expect(
-                    suite.transaction((transaction) =>
-                        suite.repository().profileService.update({
-                            transaction,
-                            id: entity.id,
-                            patch,
-                        }),
-                    ),
-                ).resolves.toEqual({ message: "Profile updated successfully" });
-                expect(await suite.repository().repositories.profiles.findById({ id: entity.id })).toEqual(entity);
-            },
-        );
+        it("skips an empty patch without querying or changing stored metadata", async () => {
+            const entity = await create();
+            const stored = await suite.prisma().profile.update({
+                where: { id: entity.id },
+                data: { updatedAt: new Date("2025-01-01T00:00:00.000Z") },
+            });
+            const result = await suite.transaction(async (transaction) => {
+                const update = jest.spyOn(transaction.profile, "update");
+                try {
+                    const result = await suite.repository().profileService.update({
+                        transaction,
+                        id: entity.id,
+                        patch: {},
+                    });
+                    expect(update).not.toHaveBeenCalled();
+                    return result;
+                } finally {
+                    update.mockRestore();
+                }
+            });
+            expect(result).toEqual({ message: "Profile updated successfully" });
+            expect(await suite.prisma().profile.findUniqueOrThrow({ where: { id: entity.id } })).toEqual(stored);
+        });
+
+        it("updates metadata for a nonempty patch containing the current value", async () => {
+            const entity = await create();
+            await suite.transaction((transaction) =>
+                suite.repository().profileService.update({
+                    transaction,
+                    id: entity.id,
+                    patch: { name: "Created" },
+                }),
+            );
+            expect(await suite.repository().repositories.profiles.findById({ id: entity.id })).toEqual({
+                ...entity,
+                updatedAt: expect.any(Date),
+            });
+        });
 
         it("rejects a missing record", async () => {
             await expect(

@@ -13,13 +13,17 @@ declare global {
         type EntityClass<T> = { prototype: T };
         type EntityData<T> = Pick<T, { [K in keyof T]: T[K] extends (...args: never[]) => unknown ? never : K }[keyof T]>;
 
-        type OrdinalFilter<N extends boolean> = {
-            equals?: N extends true ? Nullable<Date> : Date;
-            not?: N extends true ? Nullable<Date> : Date;
-            gte?: Date;
-            lte?: Date;
-            lt?: Date;
-            gt?: Date;
+        type OperatorMap<T extends Nullable<Ordinal | string>> = {
+            equals?: T;
+            not?: T;
+            in?: NonNullable<T>[];
+            notIn?: NonNullable<T>[];
+            gte?: NonNullable<T>;
+            lte?: NonNullable<T>;
+            lt?: NonNullable<T>;
+            gt?: NonNullable<T>;
+            contains?: T extends string ? string : never;
+            mode?: Prisma.QueryMode;
         };
 
         namespace Utils.Pagination {

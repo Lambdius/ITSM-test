@@ -22,6 +22,7 @@ export class SkillFiltersDTO implements Repositories.Mappers.Skill.Filters {
     @Validator.IsOptional()
     @Validator.ValidateNested()
     @Type(() => StringFilterDTO)
+    @Validator.IsNonNullableFilter()
     public name?: Nullable<StringFilterDTO>;
     @Field(() => OrdinalFilterDTO, { nullable: true })
     @Validator.IsOptional()

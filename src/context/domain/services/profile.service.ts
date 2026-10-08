@@ -20,7 +20,12 @@ export class ProfileService implements Services.Profile.Contract {
 
     public async update(props: Services.Profile.Update.Props): Services.Profile.Update.Result {
         const { transaction, id, patch } = props;
-        await transaction.profile.update({ where: { id }, data: patch });
+        if (Object.keys(patch).length > 0) {
+            await transaction.profile.update({
+                where: { id },
+                data: { ...patch, updatedAt: new Date() },
+            });
+        }
         return { message: "Profile updated successfully" };
     }
 

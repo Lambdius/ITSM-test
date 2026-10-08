@@ -26,13 +26,13 @@ export class ExperienceMapper implements Repositories.Mappers.Contract<
             where.createdAt = ORMAdapter.applyOrdinalFilter(filters.createdAt);
         }
         if (filters.updatedAt) {
-            where.updatedAt = ORMAdapter.applyOrdinalFilter(filters.updatedAt);
+            where.updatedAt = ORMAdapter.applyNullableOrdinalFilter(filters.updatedAt);
         }
         if (filters.startDate) {
             where.startDate = ORMAdapter.applyOrdinalFilter(filters.startDate);
         }
         if (filters.endDate) {
-            where.endDate = ORMAdapter.applyOrdinalFilter(filters.endDate);
+            where.endDate = ORMAdapter.applyNullableOrdinalFilter(filters.endDate);
         }
         return where;
     }

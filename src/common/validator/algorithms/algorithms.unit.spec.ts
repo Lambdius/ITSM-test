@@ -1,10 +1,23 @@
+import { validateSync, IsNumber, IsEnum } from "class-validator";
+import { plainToInstance, Type } from "class-transformer";
 import { describe, expect, it } from "@jest/globals";
-import { plainToInstance } from "class-transformer";
-import { validateSync } from "class-validator";
 
 import { ExperienceListArgsDTO } from "~context/interface/dto/experience/req/get-list.dto";
 import { SkillListArgsDTO } from "~context/interface/dto/skill/req/get-list.dto";
 import { LinkFilterDTO, OrdinalFilterDTO, StringFilterDTO } from "~common/dto";
+import { PublicOrdinalOperator } from "~infrastructure/database/enums";
+
+import { IsFilterValue } from "./is-filter-value.validator";
+
+class NumericFilter {
+    @IsEnum(PublicOrdinalOperator)
+    public predicate!: PublicOrdinalOperator;
+
+    @IsFilterValue()
+    @IsNumber({}, { each: true })
+    @Type(() => Number)
+    public value!: number[];
+}
 
 const id = "00000000-0000-4000-8000-000000000001";
 const date = "2026-01-01T00:00:00.000Z";
@@ -73,6 +86,9 @@ describe("IsCursor", () => {
 
 describe("IsFilterValue", () => {
     it.each([
+        { predicate: "IS_NULL", value: [], valid: true },
+        { predicate: "IS_NOT_NULL", value: [], valid: true },
+        { predicate: "IS_NULL", value: ["a"], valid: false },
         { predicate: "EQUAL", value: ["a"], valid: true },
         { predicate: "NOT_EQUAL", value: ["a"], valid: true },
         { predicate: "ILIKE", value: ["a"], valid: true },
@@ -105,7 +121,30 @@ describe("IsFilterValue", () => {
         expect(accepts(OrdinalFilterDTO, { predicate, value })).toBe(valid);
     });
 
-    it("retains UUID validation and nullability restrictions", () => {
+    it.each([
+        { predicate: "EQUAL", value: [0], valid: true },
+        { predicate: "GREATER_THAN", value: [-1.5], valid: true },
+        { predicate: "BETWEEN", value: [-10, 2.5], valid: true },
+        { predicate: "BETWEEN", value: [0, 0], valid: true },
+        { predicate: "BETWEEN", value: [2, 1], valid: false },
+        { predicate: "BETWEEN", value: [1], valid: false },
+        { predicate: "BETWEEN", value: ["1", "2"], valid: true },
+        { predicate: "EQUAL", value: [Infinity], valid: false },
+        { predicate: "EQUAL", value: [NaN], valid: false },
+        { predicate: "EQUAL", value: ["invalid"], valid: false },
+    ])("transforms and validates numeric predicates %#", ({ predicate, value, valid }) => {
+        expect(accepts(NumericFilter, { predicate, value })).toBe(valid);
+    });
+
+    it("applies transformations only where the DTO declares them", () => {
+        const dateFilter = plainToInstance(OrdinalFilterDTO, { predicate: PublicOrdinalOperator.EQUAL, value: [date] });
+        const numberFilter = plainToInstance(NumericFilter, { predicate: PublicOrdinalOperator.EQUAL, value: ["2.5"] });
+        expect(dateFilter.value).toEqual([date]);
+        expect(validateSync(dateFilter)).not.toHaveLength(0);
+        expect(numberFilter.value).toEqual([2.5]);
+    });
+
+    it("retains UUID validation and rejects null predicates for required fields", () => {
         expect(accepts(LinkFilterDTO, { predicate: "EQUAL", value: [id] })).toBe(true);
         expect(accepts(LinkFilterDTO, { predicate: "IN", value: ["invalid"] })).toBe(false);
         expect(accepts(ExperienceListArgsDTO, { filter: { createdAt: { predicate: "IS_NULL", value: [] } } })).toBe(false);

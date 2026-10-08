@@ -4,7 +4,7 @@ type Optional<T> = T | undefined;
 
 type Maybe<T> = T | null | undefined;
 
-type Ordinal = number | string | Date;
+type Ordinal = number | Date;
 
 type UnknownObject = Record<string, unknown>;
 

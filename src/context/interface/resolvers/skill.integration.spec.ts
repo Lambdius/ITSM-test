@@ -1,8 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "@jest/globals";
+import { randomUUID } from "node:crypto";
 
-import { ErrorCode } from "~common/exceptions";
 import { graphqlSuite } from "~testing/integration/containers/graphql.suite";
+import { ErrorCode } from "~common/exceptions";
 
 describe("SkillResolver", () => {
     const suite = graphqlSuite();
@@ -133,7 +133,7 @@ describe("SkillResolver", () => {
             .application()
             .query(`{ skill(id: "${stored.id}") { id createdAt updatedAt name profile } }`);
         expect(after.errors).toBeUndefined();
-        expect(after.data?.skill).toEqual({ ...entity, name: "Updated", updatedAt: entity.updatedAt });
+        expect(after.data?.skill).toEqual({ ...entity, name: "Updated", updatedAt: expect.any(String) });
         const second = await suite.application().query(create, { input: { ...input, name: "Second" } });
         expect(second).toEqual({ data: { createSkill: { message: "Skill created successfully" } } });
         const other = await suite.prisma().profileSkill.findFirstOrThrow({ where: { name: "Second" } });
@@ -182,17 +182,13 @@ describe("SkillResolver", () => {
                 expect(await suite.prisma().profileSkill.findUniqueOrThrow({ where: { id } })).toEqual(stored);
             }),
         );
-        const unchanged = async (patch: Services.Skill.Update.Props["patch"]): Promise<void> => {
-            const result = await suite
-                .application()
-                .query("mutation($input: SkillUpdateInput!) { updateSkill(input: $input) { message } }", {
-                    input: { id, patch },
-                });
-            expect(result).toEqual({ data: { updateSkill: { message: "Skill updated successfully" } } });
-            expect(await suite.prisma().profileSkill.findUniqueOrThrow({ where: { id } })).toEqual(stored);
-        };
-        await unchanged({});
-        await unchanged({ name: "Created" });
+        const result = await suite
+            .application()
+            .query("mutation($input: SkillUpdateInput!) { updateSkill(input: $input) { message } }", {
+                input: { id, patch: {} },
+            });
+        expect(result).toEqual({ data: { updateSkill: { message: "Skill updated successfully" } } });
+        expect(await suite.prisma().profileSkill.findUniqueOrThrow({ where: { id } })).toEqual(stored);
         const missing = await suite
             .application()
             .query("mutation($input: SkillUpdateInput!) { updateSkill(input: $input) { message } }", {

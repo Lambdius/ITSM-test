@@ -25,7 +25,12 @@ export class ProjectService implements Services.Project.Contract {
 
     public async update(props: Services.Project.Update.Props): Services.Project.Update.Result {
         const { transaction, id, patch } = props;
-        await transaction.project.update({ where: { id }, data: patch });
+        if (Object.keys(patch).length > 0) {
+            await transaction.project.update({
+                where: { id },
+                data: { ...patch, updatedAt: new Date() },
+            });
+        }
         return { message: "Project updated successfully" };
     }
 

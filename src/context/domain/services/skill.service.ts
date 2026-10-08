@@ -25,7 +25,12 @@ export class SkillService implements Services.Skill.Contract {
 
     public async update(props: Services.Skill.Update.Props): Services.Skill.Update.Result {
         const { transaction, id, patch } = props;
-        await transaction.profileSkill.update({ where: { id }, data: patch });
+        if (Object.keys(patch).length > 0) {
+            await transaction.profileSkill.update({
+                where: { id },
+                data: { ...patch, updatedAt: new Date() },
+            });
+        }
         return { message: "Skill updated successfully" };
     }
 

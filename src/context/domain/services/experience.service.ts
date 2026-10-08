@@ -25,7 +25,12 @@ export class ExperienceService implements Services.Experience.Contract {
 
     public async update(props: Services.Experience.Update.Props): Services.Experience.Update.Result {
         const { transaction, id, patch } = props;
-        await transaction.experience.update({ where: { id }, data: patch });
+        if (Object.keys(patch).length > 0) {
+            await transaction.experience.update({
+                where: { id },
+                data: { ...patch, updatedAt: new Date() },
+            });
+        }
         return { message: "Experience updated successfully" };
     }
 

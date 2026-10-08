@@ -1,8 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "@jest/globals";
+import { randomUUID } from "node:crypto";
 
-import { ErrorCode } from "~common/exceptions";
 import { graphqlSuite } from "~testing/integration/containers/graphql.suite";
+import { ErrorCode } from "~common/exceptions";
 
 describe("ProjectResolver", () => {
     const suite = graphqlSuite();
@@ -65,7 +65,7 @@ describe("ProjectResolver", () => {
             .application()
             .query(`{ project(id: "${stored.id}") { id createdAt updatedAt name url profile } }`);
         expect(after.errors).toBeUndefined();
-        expect(after.data?.project).toEqual({ ...entity, name: "Updated", updatedAt: entity.updatedAt });
+        expect(after.data?.project).toEqual({ ...entity, name: "Updated", updatedAt: expect.any(String) });
         const second = await suite.application().query(create, { input: { ...input, name: "Second" } });
         expect(second).toEqual({ data: { createProject: { message: "Project created successfully" } } });
         const other = await suite.prisma().project.findFirstOrThrow({ where: { name: "Second" } });
@@ -114,17 +114,13 @@ describe("ProjectResolver", () => {
                 expect(await suite.prisma().project.findUniqueOrThrow({ where: { id } })).toEqual(stored);
             }),
         );
-        const unchanged = async (patch: Services.Project.Update.Props["patch"]): Promise<void> => {
-            const result = await suite
-                .application()
-                .query("mutation($input: ProjectUpdateInput!) { updateProject(input: $input) { message } }", {
-                    input: { id, patch },
-                });
-            expect(result).toEqual({ data: { updateProject: { message: "Project updated successfully" } } });
-            expect(await suite.prisma().project.findUniqueOrThrow({ where: { id } })).toEqual(stored);
-        };
-        await unchanged({});
-        await unchanged({ name: "Created" });
+        const result = await suite
+            .application()
+            .query("mutation($input: ProjectUpdateInput!) { updateProject(input: $input) { message } }", {
+                input: { id, patch: {} },
+            });
+        expect(result).toEqual({ data: { updateProject: { message: "Project updated successfully" } } });
+        expect(await suite.prisma().project.findUniqueOrThrow({ where: { id } })).toEqual(stored);
         const missing = await suite
             .application()
             .query("mutation($input: ProjectUpdateInput!) { updateProject(input: $input) { message } }", {

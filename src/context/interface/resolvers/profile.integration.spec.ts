@@ -1,10 +1,10 @@
-import { randomUUID } from "node:crypto";
 import { describe, expect, it, jest } from "@jest/globals";
+import { randomUUID } from "node:crypto";
 
-import { ErrorCode } from "~common/exceptions";
 import { Experience, Profile, Project, Skill } from "~context/domain/entities";
 import { graphqlSuite } from "~testing/integration/containers/graphql.suite";
 import { DatabaseService } from "~infrastructure/database";
+import { ErrorCode } from "~common/exceptions";
 
 describe("ProfileResolver", () => {
     const suite = graphqlSuite();
@@ -252,7 +252,7 @@ describe("ProfileResolver", () => {
             .application()
             .query(`{ profile(id: "${stored.id}") { id createdAt updatedAt name description links { label url } } }`);
         expect(after.errors).toBeUndefined();
-        expect(after.data?.profile).toEqual({ ...entity, name: "Updated", updatedAt: entity.updatedAt });
+        expect(after.data?.profile).toEqual({ ...entity, name: "Updated", updatedAt: expect.any(String) });
         const second = await suite.application().query(create, { input: { ...input, name: "Second" } });
         expect(second).toEqual({ data: { createProfile: { message: "Profile created successfully" } } });
         const other = await suite.prisma().profile.findFirstOrThrow({ where: { name: "Second" } });
@@ -311,17 +311,13 @@ describe("ProfileResolver", () => {
                 expect(await suite.prisma().profile.findUniqueOrThrow({ where: { id } })).toEqual(stored);
             }),
         );
-        const unchanged = async (patch: Services.Profile.Update.Props["patch"]): Promise<void> => {
-            const result = await suite
-                .application()
-                .query("mutation($input: ProfileUpdateInput!) { updateProfile(input: $input) { message } }", {
-                    input: { id, patch },
-                });
-            expect(result).toEqual({ data: { updateProfile: { message: "Profile updated successfully" } } });
-            expect(await suite.prisma().profile.findUniqueOrThrow({ where: { id } })).toEqual(stored);
-        };
-        await unchanged({});
-        await unchanged({ name: "Created" });
+        const result = await suite
+            .application()
+            .query("mutation($input: ProfileUpdateInput!) { updateProfile(input: $input) { message } }", {
+                input: { id, patch: {} },
+            });
+        expect(result).toEqual({ data: { updateProfile: { message: "Profile updated successfully" } } });
+        expect(await suite.prisma().profile.findUniqueOrThrow({ where: { id } })).toEqual(stored);
         const missing = await suite
             .application()
             .query("mutation($input: ProfileUpdateInput!) { updateProfile(input: $input) { message } }", {

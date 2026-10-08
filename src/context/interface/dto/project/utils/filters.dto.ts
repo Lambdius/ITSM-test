@@ -22,12 +22,14 @@ export class ProjectFiltersDTO implements Repositories.Mappers.Project.Filters {
     @Validator.IsOptional()
     @Validator.ValidateNested()
     @Type(() => StringFilterDTO)
+    @Validator.IsNonNullableFilter()
     public name?: Nullable<StringFilterDTO>;
 
     @Field(() => StringFilterDTO, { nullable: true })
     @Validator.IsOptional()
     @Validator.ValidateNested()
     @Type(() => StringFilterDTO)
+    @Validator.IsNonNullableFilter()
     public url?: Nullable<StringFilterDTO>;
 
     @Field(() => OrdinalFilterDTO, { nullable: true })

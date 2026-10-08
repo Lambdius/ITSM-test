@@ -8,6 +8,8 @@ export enum PublicStringOperator {
     NOT_IN    = "NOT_IN",
     LIKE      = "LIKE",
     ILIKE     = "ILIKE",
+    IS_NULL   = "IS_NULL",
+    IS_NOT_NULL = "IS_NOT_NULL",
     /* eslint-enable prettier/prettier */
 }
 

@@ -21,12 +21,14 @@ export class ProfileFiltersDTO implements Repositories.Mappers.Profile.Filters {
     @Validator.IsOptional()
     @Validator.ValidateNested()
     @Type(() => StringFilterDTO)
+    @Validator.IsNonNullableFilter()
     public name?: Nullable<StringFilterDTO>;
 
     @Field(() => StringFilterDTO, { nullable: true })
     @Validator.IsOptional()
     @Validator.ValidateNested()
     @Type(() => StringFilterDTO)
+    @Validator.IsNonNullableFilter()
     public description?: Nullable<StringFilterDTO>;
     @Field(() => OrdinalFilterDTO, { nullable: true })
     @Validator.IsOptional()

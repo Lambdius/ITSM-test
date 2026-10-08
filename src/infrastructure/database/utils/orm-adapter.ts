@@ -1,6 +1,5 @@
 import { PublicOrdinalOperator, QueryOrder, PublicStringOperator } from "~infrastructure/database/enums";
 import { StringFilterDTO, LinkFilterDTO, OrdinalFilterDTO } from "~common/dto";
-import { Prisma } from "~infrastructure/database/generated/client";
 import { Exception } from "~common/exceptions";
 
 export class ORMAdapter {
@@ -8,7 +7,7 @@ export class ORMAdapter {
         return Object.assign(Object.create(entity.prototype) as T, data);
     }
 
-    public static applyStringFilter(filter: StringFilterDTO | LinkFilterDTO): Optional<Prisma.StringFilter> {
+    public static applyStringFilter(filter: StringFilterDTO | LinkFilterDTO): ORM.OperatorMap<string> {
         if (filter.predicate === PublicStringOperator.IN) {
             return { in: filter.value };
         }
@@ -33,14 +32,10 @@ export class ORMAdapter {
         }
     }
 
-    public static applyOrdinalFilter<N extends boolean = false>(filter: OrdinalFilterDTO<Date>): ORM.OrdinalFilter<N> {
+    public static applyOrdinalFilter<T extends Ordinal>(filter: OrdinalFilterDTO<T>): ORM.OperatorMap<T> {
         const { predicate, value } = filter;
-        const first = value[0];
+        const first = value[0]!;
         switch (predicate) {
-            case PublicOrdinalOperator.IS_NULL:
-                return { equals: undefined };
-            case PublicOrdinalOperator.IS_NOT_NULL:
-                return { not: undefined };
             case PublicOrdinalOperator.EQUAL:
                 return { equals: first };
             case PublicOrdinalOperator.NOT_EQUAL:
@@ -57,6 +52,28 @@ export class ORMAdapter {
                 return { gte: first, lte: value[1]! };
             default:
                 throw Exception.internal({ operation: "applyOrdinalFilter", predicate });
+        }
+    }
+
+    public static applyNullableOrdinalFilter<T extends Ordinal>(filter: OrdinalFilterDTO<T>): ORM.OperatorMap<Nullable<T>> {
+        switch (filter.predicate) {
+            case PublicOrdinalOperator.IS_NULL:
+                return { equals: null };
+            case PublicOrdinalOperator.IS_NOT_NULL:
+                return { not: null };
+            default:
+                return this.applyOrdinalFilter(filter);
+        }
+    }
+
+    public static applyNullableStringFilter(filter: StringFilterDTO | LinkFilterDTO): ORM.OperatorMap<Nullable<string>> {
+        switch (filter.predicate) {
+            case PublicStringOperator.IS_NULL:
+                return { equals: null };
+            case PublicStringOperator.IS_NOT_NULL:
+                return { not: null };
+            default:
+                return this.applyStringFilter(filter);
         }
     }
 

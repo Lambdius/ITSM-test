@@ -1,8 +1,10 @@
-import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "@jest/globals";
+import { randomUUID } from "node:crypto";
 
-import { ErrorCode } from "~common/exceptions";
 import { graphqlSuite } from "~testing/integration/containers/graphql.suite";
+import { PublicOrdinalOperator } from "~infrastructure/database/enums";
+import { ORMAdapter } from "~infrastructure/database/utils";
+import { ErrorCode } from "~common/exceptions";
 
 describe("ExperienceResolver", () => {
     const suite = graphqlSuite();
@@ -44,7 +46,57 @@ describe("ExperienceResolver", () => {
         });
     });
 
-    it("accepts DateTime filters and rejects invalid ranges and null predicates", async () => {
+    it("uses numeric ordinal filters in Prisma aggregate queries", async () => {
+        const positive = ORMAdapter.applyOrdinalFilter({
+            predicate: PublicOrdinalOperator.GREATER_THAN,
+            value: [0],
+        });
+        const absent = ORMAdapter.applyOrdinalFilter({
+            predicate: PublicOrdinalOperator.EQUAL,
+            value: [0],
+        });
+        expect(await suite.prisma().experience.groupBy({ by: ["profile"], having: { id: { _count: positive } } })).toEqual([
+            { profile: suite.profile() },
+        ]);
+        expect(await suite.prisma().experience.groupBy({ by: ["profile"], having: { id: { _count: absent } } })).toEqual(
+            [],
+        );
+    });
+
+    it.each(["updatedAt", "endDate"])("filters null and non-null %s independently", async (field) => {
+        const empty = await suite.prisma().experience.findFirstOrThrow();
+        const dated = await suite.prisma().experience.create({
+            data: { ...empty, id: randomUUID(), [field]: new Date("2025-01-01T00:00:00.000Z") },
+        });
+        const result = await suite.application().query(`{
+            empty: experiences(filter: { ${field}: { predicate: IS_NULL, value: [] } }) { edges { node { id } } }
+            present: experiences(filter: { ${field}: { predicate: IS_NOT_NULL, value: [] } }) { edges { node { id } } }
+            profile { experience(filter: { ${field}: { predicate: IS_NULL, value: [] } }) { edges { node { id } } } }
+        }`);
+        expect(result).toEqual({
+            data: {
+                empty: { edges: [{ node: { id: empty.id } }] },
+                present: { edges: [{ node: { id: dated.id } }] },
+                profile: { experience: { edges: [{ node: { id: empty.id } }] } },
+            },
+        });
+    });
+
+    it.each(["createdAt", "startDate", "company", "position"])(
+        "rejects null predicates for required %s before querying",
+        async (field) => {
+            await Promise.all(
+                ["IS_NULL", "IS_NOT_NULL"].map(async (predicate) => {
+                    const result = await suite.application().query(`{
+                    experiences(filter: { ${field}: { predicate: ${predicate}, value: [] } }) { edges { node { id } } }
+                }`);
+                    expect(result.errors?.[0]?.extensions.code).toBe(ErrorCode.BAD_REQUEST);
+                }),
+            );
+        },
+    );
+
+    it("accepts date filters and rejects invalid ranges and predicate values", async () => {
         const result = await suite.application().query(`{
             experiences(filter: {
                 startDate: { predicate: BETWEEN, value: ["2023-01-01T00:00:00.000Z", "2024-01-01T00:00:00.000Z"] }
@@ -55,7 +107,7 @@ describe("ExperienceResolver", () => {
         expect(result.data?.experiences?.edges).toEqual([{ node: { startDate: "2023-06-01T00:00:00.000Z" } }]);
         await Promise.all(
             [
-                "createdAt: { predicate: IS_NULL, value: [] }",
+                "createdAt: { predicate: EQUAL, value: [42] }",
                 'endDate: { predicate: IS_NULL, value: ["2024-01-01T00:00:00.000Z"] }',
                 'startDate: { predicate: BETWEEN, value: ["2025-01-01T00:00:00.000Z", "2024-01-01T00:00:00.000Z"] }',
                 'startDate: { predicate: BETWEEN, value: ["2024-01-01T00:00:00.000Z"] }',
@@ -101,7 +153,7 @@ describe("ExperienceResolver", () => {
                 `{ experience(id: "${stored.id}") { id createdAt updatedAt company position achievements startDate endDate profile } }`,
             );
         expect(after.errors).toBeUndefined();
-        expect(after.data?.experience).toEqual({ ...entity, company: "Updated", updatedAt: entity.updatedAt });
+        expect(after.data?.experience).toEqual({ ...entity, company: "Updated", updatedAt: expect.any(String) });
         const second = await suite.application().query(create, { input: { ...input, company: "Second" } });
         expect(second).toEqual({ data: { createExperience: { message: "Experience created successfully" } } });
         const other = await suite.prisma().experience.findFirstOrThrow({ where: { company: "Second" } });
@@ -157,17 +209,13 @@ describe("ExperienceResolver", () => {
                 expect(await suite.prisma().experience.findUniqueOrThrow({ where: { id } })).toEqual(stored);
             }),
         );
-        const unchanged = async (patch: Services.Experience.Update.Props["patch"]): Promise<void> => {
-            const result = await suite
-                .application()
-                .query("mutation($input: ExperienceUpdateInput!) { updateExperience(input: $input) { message } }", {
-                    input: { id, patch },
-                });
-            expect(result).toEqual({ data: { updateExperience: { message: "Experience updated successfully" } } });
-            expect(await suite.prisma().experience.findUniqueOrThrow({ where: { id } })).toEqual(stored);
-        };
-        await unchanged({});
-        await unchanged({ company: "Created" });
+        const result = await suite
+            .application()
+            .query("mutation($input: ExperienceUpdateInput!) { updateExperience(input: $input) { message } }", {
+                input: { id, patch: {} },
+            });
+        expect(result).toEqual({ data: { updateExperience: { message: "Experience updated successfully" } } });
+        expect(await suite.prisma().experience.findUniqueOrThrow({ where: { id } })).toEqual(stored);
         const missing = await suite
             .application()
             .query("mutation($input: ExperienceUpdateInput!) { updateExperience(input: $input) { message } }", {
